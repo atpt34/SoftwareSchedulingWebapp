@@ -367,27 +367,31 @@ public class ManagerController {
 	}
 	
 	
-	private static final int TEST_PROJECT_ID = 1;
+
 	
 	@RequestMapping(value = "/manager/listEmployeeEstimatedOvertimes",
 			method = RequestMethod.GET)
-	public String listEstimatedOvertimes(Model model){
-		List<EmployeeOvertimeEstimated> list = projectServiceDAO.employeeOvertimeEstimated(TEST_PROJECT_ID);
+	public String listEstimatedOvertimes(Model model, 
+			@RequestParam("projectId") int projectId) {
+		List<EmployeeOvertimeEstimated> list = projectServiceDAO.employeeOvertimeEstimated(projectId);
 		model.addAttribute("listEmployeeEstimatedOvertimes", list);
 		return "/manager/listEmployeeEstimatedOvertimes";
 	}
 	@RequestMapping(value = "/manager/listHumanHoursBySprint",
 			method = RequestMethod.GET)
-	public String listHumanHoursBySprint(Model model){
-		List<HumanHoursBySprint> list = projectServiceDAO.humanHoursBySprint(TEST_PROJECT_ID);
+	public String listHumanHoursBySprint(Model model,
+			@RequestParam("projectId") int projectId){
+		List<HumanHoursBySprint> list = projectServiceDAO.humanHoursBySprint(projectId);
 		model.addAttribute("listHumanHoursBySprint", list);
 		return "/manager/listHumanHoursBySprint";
 	}
 	@RequestMapping(value = "/manager/listEmployeeActualOvertimes",
 			method = RequestMethod.GET)
-	public String listEmployeeActualOvertimes(Model model){
-		List<EmployeeOvertimeActual> list = projectServiceDAO.employeeOvertimeActual(TEST_PROJECT_ID);
+	public String listEmployeeActualOvertimes(Model model,
+			@RequestParam("projectId") int projectId){
+		List<EmployeeOvertimeActual> list = projectServiceDAO.employeeOvertimeActual(projectId);
 		model.addAttribute("listEmployeeActualOvertimes", list);
 		return "/manager/listEmployeeActualOvertimes";
 	}
+	
 }
