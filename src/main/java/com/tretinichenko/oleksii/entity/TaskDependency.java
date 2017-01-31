@@ -6,6 +6,7 @@ public class TaskDependency {
 	private int taskId;  // or type Task?
 	private int dependencyTaskId;
 	
+
 	public TaskDependency(int id, int taskId, int dependencyTaskId) {
 		this.id = id;
 		this.taskId = taskId;
@@ -35,6 +36,41 @@ public class TaskDependency {
 	public void setDependencyTaskId(int dependcyTaskId) {
 		this.dependencyTaskId = dependcyTaskId;
 	}
+	
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + dependencyTaskId;
+		result = prime * result + id;
+		result = prime * result + taskId;
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		TaskDependency other = (TaskDependency) obj;
+		if (dependencyTaskId != other.dependencyTaskId)
+			return false;
+		if (id != other.id)
+			return false;
+		if (taskId != other.taskId)
+			return false;
+		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "TaskDependency [id=" + id + ", taskId=" + taskId + ", dependencyTaskId=" + dependencyTaskId + "]";
+	}
+	
 	
 	
 }

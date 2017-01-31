@@ -8,13 +8,6 @@ public class Employee {
 //	private Employee manager;
 	private int managerId;
 	
-//	public Employee(){
-//		id = 0;
-//		name = "";
-//		email = "";
-//		managerId = 0;
-//	}
-	
 	public Employee(int id, String name, String email, int managerId) {
 		super();
 		this.id = id;
@@ -62,6 +55,53 @@ public class Employee {
 	public void setManagerId(int managerId) {
 		this.managerId = managerId;
 	}
+
+	
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((email == null) ? 0 : email.hashCode());
+		result = prime * result + id;
+		result = prime * result + managerId;
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		return result;
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Employee other = (Employee) obj;
+		if (email == null) {
+			if (other.email != null)
+				return false;
+		} else if (!email.equals(other.email))
+			return false;
+		if (id != other.id)
+			return false;
+		if (managerId != other.managerId)
+			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		return true;
+	}
+
+
+	@Override
+	public String toString() {
+		return "Employee [id=" + id + ", name=" + name + ", email=" + email + ", managerId=" + managerId + "]";
+	}
+	
 	
 	
 }

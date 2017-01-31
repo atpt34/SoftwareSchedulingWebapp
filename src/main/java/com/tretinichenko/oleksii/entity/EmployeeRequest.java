@@ -41,6 +41,45 @@ public class EmployeeRequest {
 	public void setHours(int hours) {
 		this.hours = hours;
 	}
+
+	
+	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + employeeId;
+		result = prime * result + hours;
+		result = prime * result + id;
+		result = prime * result + taskId;
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		EmployeeRequest other = (EmployeeRequest) obj;
+		if (employeeId != other.employeeId)
+			return false;
+		if (hours != other.hours)
+			return false;
+		if (id != other.id)
+			return false;
+		if (taskId != other.taskId)
+			return false;
+		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "EmployeeRequest [id=" + id + ", taskId=" + taskId + ", employeeId=" + employeeId + ", hours=" + hours
+				+ "]";
+	}
 	
 	
 }
