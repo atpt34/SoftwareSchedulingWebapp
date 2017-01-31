@@ -1,7 +1,7 @@
 package com.tretinichenko.oleksii.controller;
 
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
+
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +28,7 @@ import com.tretinichenko.oleksii.entity.TaskDependency;
 import com.tretinichenko.oleksii.model.EmployeeOvertimeActual;
 import com.tretinichenko.oleksii.model.EmployeeOvertimeEstimated;
 import com.tretinichenko.oleksii.model.HumanHoursBySprint;
+import com.tretinichenko.oleksii.util.DateUtil;
 
 @Controller
 public class ManagerController {
@@ -56,10 +57,11 @@ public class ManagerController {
 	@Autowired
 	private ProjectServiceDAO projectServiceDAO;
 	
-	private static final String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
+	
 
 	
-	@RequestMapping(value = {"/manager", "/manager/", "/manager/home"}, method = RequestMethod.GET)
+	@RequestMapping(value = {"/manager", "/manager/", "/manager/home"},
+			method = RequestMethod.GET)
 	public String viewManagerPage(){
 		// manager page dashboard
 		return "/manager/manager";
@@ -82,7 +84,8 @@ public class ManagerController {
 		return "/manager/editProject";
 	}
 	
-	@RequestMapping(value = "/manager/updateProject", method = RequestMethod.POST)
+	@RequestMapping(value = "/manager/updateProject", 
+			method = RequestMethod.POST)
 	public String updateProject(Model model, 
 			@RequestParam("id") int id,
 			@RequestParam("name") String name,
@@ -93,8 +96,10 @@ public class ManagerController {
 			@RequestParam("projectManagerId") int projectManagerId) {
 		Project project = null;
 		try {
-			project = new Project(id, name, new SimpleDateFormat(DATE_PATTERN).parse(startDate), 
-					new SimpleDateFormat(DATE_PATTERN).parse(endDate), projectManagerId, company, customer);
+			project = new Project(id, name, 
+					DateUtil.parseStringDate(startDate),
+					DateUtil.parseStringDate(endDate),  
+					projectManagerId, company, customer);
 		} catch (ParseException e) {
 			// do not know what to do
 			e.printStackTrace();
@@ -184,7 +189,9 @@ public class ManagerController {
 			@RequestParam("startTime") String startTime) {
 		Task task = null;
 		try {
-			task = new Task(id, sprintId, name, new SimpleDateFormat(DATE_PATTERN).parse(startTime), hoursEstimate);
+			task = new Task(id, sprintId, name,
+					DateUtil.parseStringDate(startTime),
+					hoursEstimate);
 		} catch (ParseException e) {
 			// TODO what to do with this ?
 			throw new RuntimeException(e);
@@ -207,7 +214,9 @@ public class ManagerController {
 			@RequestParam("startTime") String startTime) {
 		Task task = null;
 		try {
-			task = new Task(id, sprintId, name, new SimpleDateFormat(DATE_PATTERN).parse(startTime), hoursEstimate);
+			task = new Task(id, sprintId, name,
+					DateUtil.parseStringDate(startTime),
+					hoursEstimate);
 		} catch (ParseException e) {
 			// TODO what to do with this ?
 			throw new RuntimeException(e);
@@ -227,7 +236,8 @@ public class ManagerController {
 		return "/manager/listTaskDependencies";
 	}
 	
-	@RequestMapping(value = "/manager/editTaskDependency", method = RequestMethod.GET)
+	@RequestMapping(value = "/manager/editTaskDependency", 
+			method = RequestMethod.GET)
 	public String editTaskDependency(Model model, 
 			@RequestParam("taskDependencyId") int id){
 		TaskDependency taskDep = taskDependencyDAO.findTaskDependencyById(id);
@@ -235,13 +245,15 @@ public class ManagerController {
 		return "/manager/editTaskDependency";
 	}
 	
-	@RequestMapping(value = "/manager/deleteTaskDependency", method = RequestMethod.GET)
+	@RequestMapping(value = "/manager/deleteTaskDependency", 
+			method = RequestMethod.GET)
 	public String deleteTaskDependency(Model model,
 			@RequestParam("taskDependencyId") int id){
 		taskDependencyDAO.deleteTaskDependencyById(id);
 		return "redirect:/manager/listTaskDependencies";
 	}
-	@RequestMapping(value = "/manager/updateTaskDependency", method = RequestMethod.POST)
+	@RequestMapping(value = "/manager/updateTaskDependency", 
+			method = RequestMethod.POST)
 	public String updateTaskDependency(Model model, 
 			@RequestParam("id") int id,
 			@RequestParam("taskId") int taskId,
@@ -251,40 +263,48 @@ public class ManagerController {
 		return "redirect:/manager/listTaskDependencies";
 	}
 	
-	@RequestMapping(value = "/manager/createTaskDependency", method = RequestMethod.GET)
+	@RequestMapping(value = "/manager/createTaskDependency", 
+			method = RequestMethod.GET)
 	public String createTaskDependency() {
 		return "/manager/createTaskDependency";
 	}
 	
-	@RequestMapping(value = "/manager/createTaskDependency", method = RequestMethod.POST)
+	@RequestMapping(value = "/manager/createTaskDependency", 
+			method = RequestMethod.POST)
 	public String createTaskDependency(Model model, 
 			@RequestParam("id") int id,
 			@RequestParam("taskId") int taskId,
 			@RequestParam("dependencyTaskId") int dependencyTaskId) {
-		TaskDependency taskDep = new TaskDependency(id, taskId, dependencyTaskId);
+		TaskDependency taskDep = 
+				new TaskDependency(id, taskId, dependencyTaskId);
 		taskDependencyDAO.saveTaskDependency(taskDep);
 		return "redirect:/manager/listTaskDependencies";
 	}
 	
 	
 	
-	@RequestMapping(value = "/manager/listTaskAssignments", method = RequestMethod.GET)
+	@RequestMapping(value = "/manager/listTaskAssignments", 
+			method = RequestMethod.GET)
 	public String listTaskAssignments(Model model){
-		List<TaskAssignment> taskAssigns = taskAssignmentDAO.listAllTaskAssignments(); 
+		List<TaskAssignment> taskAssigns = 
+				taskAssignmentDAO.listAllTaskAssignments(); 
 		model.addAttribute("listTaskAssignments", taskAssigns);
 		return "/manager/listTaskAssignments";
 	}
 	
 	// only for manager ROLE
-	@RequestMapping(value = "/manager/editTaskAssignment", method = RequestMethod.GET)
+	@RequestMapping(value = "/manager/editTaskAssignment",
+			method = RequestMethod.GET)
 	public String editTaskAssignment(Model model, 
 			@RequestParam("taskAssignmentId") int id){
-		TaskAssignment taskAssign = taskAssignmentDAO.findTaskAssignmentById(id);
+		TaskAssignment taskAssign = 
+				taskAssignmentDAO.findTaskAssignmentById(id);
 		model.addAttribute("taskAssign", taskAssign);
 		return "/manager/editTaskAssignment";
 	}
 	
-	@RequestMapping(value = "/manager/updateTaskAssignment", method = RequestMethod.POST)
+	@RequestMapping(value = "/manager/updateTaskAssignment",
+			method = RequestMethod.POST)
 	public String updateTaskAssignment(Model model, 
 			@RequestParam("id") int id,
 			@RequestParam("taskId") int taskId,
@@ -294,8 +314,8 @@ public class ManagerController {
 		TaskAssignment taskAssign = null;
 		try {
 			taskAssign = new TaskAssignment(id, taskId, employeeId, 
-					new SimpleDateFormat(DATE_PATTERN).parse(acceptedTime), 
-					new SimpleDateFormat(DATE_PATTERN).parse(finishTime));
+					DateUtil.parseStringDate(acceptedTime),
+					DateUtil.parseStringDate(finishTime));
 		} catch (ParseException e) {
 			// TODO what to do with this ?
 			throw new RuntimeException(e);
@@ -305,12 +325,14 @@ public class ManagerController {
 		return "redirect:/manager/listTaskAssignments";
 	}
 	
-	@RequestMapping(value = "/manager/createTaskAssignment", method = RequestMethod.GET)
+	@RequestMapping(value = "/manager/createTaskAssignment",
+			method = RequestMethod.GET)
 	public String createTaskAssignment() {
 		return "/manager/createTaskAssignment";
 	}
 	
-	@RequestMapping(value = "/manager/createTaskAssignment", method = RequestMethod.POST)
+	@RequestMapping(value = "/manager/createTaskAssignment",
+			method = RequestMethod.POST)
 	public String createTaskAssignment(Model model, 
 			@RequestParam("id") int id,
 			@RequestParam("taskId") int taskId,
@@ -320,8 +342,8 @@ public class ManagerController {
 		TaskAssignment taskAssign = null;
 		try {
 			taskAssign = new TaskAssignment(id, taskId, employeeId, 
-					new SimpleDateFormat(DATE_PATTERN).parse(acceptedTime), 
-					new SimpleDateFormat(DATE_PATTERN).parse(finishTime));
+					DateUtil.parseStringDate(acceptedTime),
+					DateUtil.parseStringDate(finishTime));
 		} catch (ParseException e) {
 			// do not know what to do
 			e.printStackTrace();
@@ -330,7 +352,8 @@ public class ManagerController {
 		return "redirect:/manager/listTaskAssignments";
 	}
 	
-	@RequestMapping(value = "/manager/deleteTaskAssignment", method = RequestMethod.GET)
+	@RequestMapping(value = "/manager/deleteTaskAssignment", 
+			method = RequestMethod.GET)
 	public String deleteTaskAssignment(Model model,
 			@RequestParam("taskAssignmentId") int id){
 		taskAssignmentDAO.deleteTaskAssignmentById(id);
@@ -374,7 +397,8 @@ public class ManagerController {
 			method = RequestMethod.GET)
 	public String listEstimatedOvertimes(Model model, 
 			@RequestParam("projectId") int projectId) {
-		List<EmployeeOvertimeEstimated> list = projectServiceDAO.employeeOvertimeEstimated(projectId);
+		List<EmployeeOvertimeEstimated> list = 
+				projectServiceDAO.employeeOvertimeEstimated(projectId);
 		model.addAttribute("listEmployeeEstimatedOvertimes", list);
 		return "/manager/listEmployeeEstimatedOvertimes";
 	}
@@ -382,7 +406,8 @@ public class ManagerController {
 			method = RequestMethod.GET)
 	public String listHumanHoursBySprint(Model model,
 			@RequestParam("projectId") int projectId){
-		List<HumanHoursBySprint> list = projectServiceDAO.humanHoursBySprint(projectId);
+		List<HumanHoursBySprint> list = 
+				projectServiceDAO.humanHoursBySprint(projectId);
 		model.addAttribute("listHumanHoursBySprint", list);
 		return "/manager/listHumanHoursBySprint";
 	}
@@ -390,7 +415,8 @@ public class ManagerController {
 			method = RequestMethod.GET)
 	public String listEmployeeActualOvertimes(Model model,
 			@RequestParam("projectId") int projectId){
-		List<EmployeeOvertimeActual> list = projectServiceDAO.employeeOvertimeActual(projectId);
+		List<EmployeeOvertimeActual> list = 
+				projectServiceDAO.employeeOvertimeActual(projectId);
 		model.addAttribute("listEmployeeActualOvertimes", list);
 		return "/manager/listEmployeeActualOvertimes";
 	}

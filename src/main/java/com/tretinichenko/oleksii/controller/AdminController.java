@@ -1,8 +1,7 @@
 package com.tretinichenko.oleksii.controller;
 
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +16,7 @@ import com.tretinichenko.oleksii.dao.EmployeeDAO;
 import com.tretinichenko.oleksii.dao.ProjectDAO;
 import com.tretinichenko.oleksii.entity.Employee;
 import com.tretinichenko.oleksii.entity.Project;
+import com.tretinichenko.oleksii.util.DateUtil;
 //import com.tretinichenko.oleksii.service.AdminService;
 
 @Controller
@@ -35,9 +35,10 @@ public class AdminController {
 	@Autowired
 	private ProjectDAO projectDAO;
 	
-	private static final String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
+
 	
-	@RequestMapping(value = {"/admin", "/admin/admin", "/admin/"}, method = RequestMethod.GET)
+	@RequestMapping(value = {"/admin", "/admin/admin", "/admin/"},
+			method = RequestMethod.GET)
 	public String viewAdminPage(){
 		// admin dashboard
 		return "/admin/admin";
@@ -53,7 +54,8 @@ public class AdminController {
 	
 	@RequestMapping(value = "/admin/editEmployee", method = RequestMethod.GET)
 	public String editEmployee(Model model,
-			@RequestParam(value = "employeeId", defaultValue = "0") int employeeId){
+			@RequestParam(value = "employeeId", defaultValue = "0")
+	int employeeId){
 		Employee employee = null;
 		// if there is employee with such id ?
 		employee = employeeDAO.findEmployeeById(employeeId);
@@ -81,7 +83,8 @@ public class AdminController {
 			@RequestParam("id") int id,
 			@RequestParam("name") String name,
 			@RequestParam("email") String email,
-			@RequestParam(value = "managerId", defaultValue = "0") int managerId) {
+			@RequestParam(value = "managerId", defaultValue = "0")
+				int managerId) {
 		Employee employee = new Employee(id, name, email, managerId);
 		employeeDAO.saveEmployee(employee);
 		return "redirect:/admin/listEmployees";
@@ -127,8 +130,10 @@ public class AdminController {
 			@RequestParam("projectManagerId") int projectManagerId) {
 		Project project = null;
 		try {
-			project = new Project(id, name, new SimpleDateFormat(DATE_PATTERN).parse(startDate), 
-					new SimpleDateFormat(DATE_PATTERN).parse(endDate), projectManagerId, company, customer);
+			project = new Project(id, name,
+					DateUtil.parseStringDate(startDate),
+					DateUtil.parseStringDate(endDate),
+					projectManagerId, company, customer);
 		} catch (ParseException e) {
 			// do not know what to do
 			e.printStackTrace();
@@ -160,8 +165,10 @@ public class AdminController {
 			@RequestParam("projectManagerId") int projectManagerId) {
 		Project project = null;
 		try {
-			project = new Project(id, name, new SimpleDateFormat(DATE_PATTERN).parse(startDate), 
-					new SimpleDateFormat(DATE_PATTERN).parse(endDate), projectManagerId, company, customer);
+			project = new Project(id, name,
+					DateUtil.parseStringDate(startDate),
+					DateUtil.parseStringDate(endDate),
+					projectManagerId, company, customer);
 		} catch (ParseException e) {
 			// do not know what to do
 			e.printStackTrace();
