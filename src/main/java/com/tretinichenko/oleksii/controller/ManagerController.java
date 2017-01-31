@@ -361,8 +361,9 @@ public class ManagerController {
 	
 	@RequestMapping(value = "/manager/projectService",
 			method = RequestMethod.GET)
-	public String projectService(){
-		
+	public String projectService(Model model,
+			@RequestParam("projectId") int projectId){
+		model.addAttribute("projectId", projectId);
 		return "/manager/projectService";
 	}
 	

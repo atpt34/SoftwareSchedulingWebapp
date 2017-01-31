@@ -11,9 +11,9 @@
 	<h2>project's services: </h2>
 	
 	
-	<p><a href="${pageContext.request.contextPath}/manager/listEmployeeEstimatedOvertimes">  list employee's estimated overtimes</a></p>
-	<p><a href="${pageContext.request.contextPath}/manager/listHumanHoursBySprint">  list human-hours by sprint </a></p>
-	<p><a href="${pageContext.request.contextPath}/manager/listEmployeeActualOvertimes">  list actual employee's overtimes</a> </p>
+	<p><a href="${pageContext.request.contextPath}/manager/listEmployeeEstimatedOvertimes?projectId=${projectId}">  list employee's estimated overtimes</a></p>
+	<p><a href="${pageContext.request.contextPath}/manager/listHumanHoursBySprint?projectId=${projectId}">  list human-hours by sprint </a></p>
+	<p><a href="${pageContext.request.contextPath}/manager/listEmployeeActualOvertimes?projectId=${projectId}">  list actual employee's overtimes</a> </p>
 	
 
 </body>
