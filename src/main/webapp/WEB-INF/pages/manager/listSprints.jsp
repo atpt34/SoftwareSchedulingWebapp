@@ -13,7 +13,7 @@
 	
 	<p> <a href="${pageContext.request.contextPath}/manager/createSprint" >create new sprint</a> </p>
 	<p> <a href="${pageContext.request.contextPath}/manager/listRequests" >list employee requests </a> </p>
-	<p> <a href="${pageContext.request.contextPath}/manager/projectService?projectId=${sprint.projectId}" > project Service </a> </p>
+	<p> <a href="${pageContext.request.contextPath}/manager/projectService?projectId=${projectId}" > project Service </a> </p>
 	
 	<table border="1" >
 		<tr>

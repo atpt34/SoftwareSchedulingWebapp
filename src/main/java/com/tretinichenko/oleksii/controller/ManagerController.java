@@ -112,7 +112,9 @@ public class ManagerController {
 	
 	
 	@RequestMapping(value = "/manager/listSprints", method = RequestMethod.GET)
-	public String listSprints(Model model){
+	public String listSprints(Model model,
+			@RequestParam("projectId") int projectId){
+		model.addAttribute("projectId", projectId);
 		List<Sprint> listSprints = sprintDAO.listAllSprints();
 		model.addAttribute("listSprints", listSprints);
 		return "/manager/listSprints";
