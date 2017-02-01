@@ -4,16 +4,17 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
-<title>Access denied</title>
+<title>success</title>
 </head>
 <body>
-	<jsp:include page="_header.jsp" />
-	<jsp:include page="_menu.jsp" />
 
-	<h1> Oops! Some Error here !</h1>
-	<h3 style="color:red;">${message }</h3>
-	
-	<jsp:include page="_footer.jsp" />
-		
+
+	<jsp:include page="_header.jsp"/>
+	<jsp:include page="_menu.jsp"/>
+
+
+	<h3>Logout successful!</h3>
+
+	<jsp:include page="_footer.jsp"/>
 </body>
 </html>
