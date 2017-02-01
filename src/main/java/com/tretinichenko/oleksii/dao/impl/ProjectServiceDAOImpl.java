@@ -28,26 +28,23 @@ public class ProjectServiceDAOImpl extends JdbcDaoSupport implements ProjectServ
 	
 	
 	private static final String EMPLOYEE_OVERTIMES_ESTIMATED_BY_PROJECTID = 
-			"SELECT "
-			+ "WEEKOFYEAR(temp.startTime) AS \"weekOfYear\", "
-			+ "temp.employeeId AS \"employeeId\", "
-			+ "SUM(temp.hoursActualTime) AS \"workingHours\" "
-			+ "FROM ( "
-			+ "	SELECT "
-			+ " t.startTime AS \"startTime\", "
-			+ " t.hoursEstimate, "
-			+ "	TIMESTAMPDIFF(HOUR, t.startTime, "
-			+ "   DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR)) "
-			+ "    AS \"hoursActualTime\",	"
-			+ " ta.employeeId AS \"employeeId\"	"
-			+ " FROM Task AS t	"
-			+ " INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id	"
-			+ " INNER JOIN Sprint AS s ON t.sprintId = s.id	"
-			+ " WHERE s.projectId = ? "
-			+ " ) AS temp "
-			+ "GROUP BY "
-			+ "WEEKOFYEAR(temp.startTime), "
-			+ "temp.employeeId "; 	
+			"SELECT \n" + 
+			"EXTRACT(WEEK FROM temp.starttime) AS \"weekOfYear\",\n" + 
+			"temp.employeeid AS \"employeeId\",\n" + 
+			"SUM(temp.hoursestimate) AS \"workingHours\"\n" + 
+			"FROM (\n" + 
+			" SELECT \n" + 
+			" t.startTime AS starttime,\n" + 
+			" t.hoursEstimate AS hoursestimate,\n" + 
+			" ta.employeeId AS employeeid\n" + 
+			" FROM Task AS t\n" + 
+			" INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
+			" INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
+			" WHERE s.projectId = ?\n" + 
+			") AS temp\n" + 
+			"GROUP BY \n" + 
+			"\"weekOfYear\",\n" + 
+			"\"employeeId\" "; 	
 	
 	private static final class EmployeeOvertimeEstimatedRowMapper 
 			implements RowMapper<EmployeeOvertimeEstimated> {
@@ -69,21 +66,21 @@ public class ProjectServiceDAOImpl extends JdbcDaoSupport implements ProjectServ
 	}
 
 	private static final String HUMAN_HOURS_SPRINT_BY_PROJECTID = 
-			"SELECT "
-			+ "temp.sprintId AS \"sprintId\", "
-			+ "SUM(temp.hoursActualTime) AS \"totalHumanHours\" "
-			+ "FROM ( "
-			+ "	SELECT "
-			+ " t.sprintId AS \"sprintId\", "
-			+ " TIMESTAMPDIFF(HOUR, ta.acceptedTime, "
-			+ "  ta.finishTime) AS \"hoursActualTime\" "
-			+ "	FROM TaskAssignment AS ta	"
-			+ " INNER JOIN Task AS t ON t.id = ta.taskId "
-			+ " INNER JOIN Sprint AS s ON t.sprintId = s.id	"
-			+ " WHERE s.projectId = ? "
-			+ " ) AS temp "
-			+ "GROUP BY "
-			+ "temp.sprintId";
+			"SELECT \n" + 
+			"temp.sprintid AS \"sprintId\",\n" + 
+			"SUM(temp.hoursactualtime) AS \"totalHumanHours\"\n" + 
+			"FROM (\n" + 
+			" SELECT \n" + 
+			" t.sprintId AS sprintid,\n" + 
+			" FLOOR("
+			+ "EXTRACT(EPOCH FROM (ta.finishTime - ta.acceptedTime)) / 3600) "
+			+ "AS hoursactualtime\n" + 
+			" FROM TaskAssignment AS ta\n" + 
+			" INNER JOIN Task AS t ON t.id = ta.taskId\n" + 
+			" INNER JOIN Sprint AS s ON s.id = t.sprintId\n" + 
+			" WHERE s.projectId = ?\n" + 
+			") AS temp\n" + 
+			"GROUP BY temp.sprintid";
 	
 	@Override
 	public List<HumanHoursBySprint> humanHoursBySprint(int projectId) {
@@ -104,22 +101,24 @@ public class ProjectServiceDAOImpl extends JdbcDaoSupport implements ProjectServ
 	private static final int OVERTIME_HOURS_THRESHOLD = 40;
 	private static final String EMPLOYEE_OVERTIME_ACTUAL_BY_PROJECTID = 
 			"SELECT \n" + 
-			"WEEKOFYEAR(temp.acceptedTime) AS \"weekOfYear\",\n" + 
-			"temp.employeeId AS \"employeeId\", \n" + 
-			"(SUM(temp.hoursActualTime) - " + OVERTIME_HOURS_THRESHOLD +
+			"EXTRACT (WEEK FROM temp.acceptedtime) AS \"weekOfYear\", \n" + 
+			"temp.employeeid AS \"employeeId\", \n" + 
+			"(SUM(temp.hoursactualtime) - " + OVERTIME_HOURS_THRESHOLD + 
 			"  ) AS \"overtimeHours\" \n" + 
 			"FROM (\n" + 
-			"	SELECT  \n" + 
-			"	ta.acceptedTime AS \"acceptedTime\",\n" + 
-			"	TIMESTAMPDIFF(HOUR, ta.acceptedTime, ta.finishTime) AS \"hoursActualTime\",\n" + 
-			"	ta.employeeId AS \"employeeId\"\n" + 
-			"	FROM Task AS t\n" + 
-			"    INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			"	INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"	WHERE s.projectId = ?\n" + 
+			" SELECT\n" + 
+			" ta.acceptedTime AS acceptedtime,\n" + 
+			" FLOOR("
+			+ "EXTRACT(EPOCH FROM (ta.finishTime - ta.acceptedTime)) / 3600 )"
+			+ "  AS \"hoursactualtime\",\n" + 
+			" ta.employeeId AS employeeid\n" + 
+			" FROM Task AS t\n" + 
+			" INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
+			" INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
+			" WHERE s.projectId = ?\n" + 
 			") AS temp\n" + 
-			"GROUP BY WEEKOFYEAR(temp.acceptedTime), temp.employeeId\n" + 
-			"HAVING SUM(temp.hoursActualTime) > " + OVERTIME_HOURS_THRESHOLD;
+			"GROUP BY \"weekOfYear\", \"employeeId\"\n" + 
+			"HAVING SUM(temp.hoursactualtime) >= " + OVERTIME_HOURS_THRESHOLD;
 	@Override
 	public List<EmployeeOvertimeActual> employeeOvertimeActual(int projectId) {
 		return this.getJdbcTemplate().query(
