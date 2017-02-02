@@ -7,8 +7,15 @@
 <title>Insert title here</title>
 </head>
 <body>
+
+	<jsp:include page="../_header.jsp" />
+	<jsp:include page="../_menu.jsp" />
+
 	<h1> Admin dashboard</h1>
 	<p> <a href="${pageContext.request.contextPath}/admin/listEmployees" >list all employees </a> </p>
 	<p> <a href="${pageContext.request.contextPath}/admin/listProjects" >list all projects </a> </p>
+	
+	<jsp:include page="../_footer.jsp" />
+	
 </body>
 </html>
