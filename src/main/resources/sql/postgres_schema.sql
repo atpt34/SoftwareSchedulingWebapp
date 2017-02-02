@@ -51,6 +51,24 @@ acceptedTime timestamp,
 finishTime timestamp
 );
 
+/* new Account table: */
+create table Account (
+userName varchar(32) primary key,
+password varchar(32) not null,
+userRole varchar(32) not null,
+employeeId int references Employee(id)
+);
+
+insert into account (username, password, userrole, employeeid)
+values ('oleksii', 'tretinichenko', 'admin', null);
+insert into account (username, password, userrole, employeeid)
+values ('employee1', 'employee1', 'manager', 1);
+insert into account (username, password, userrole, employeeid)
+values ('employee2', 'employee2', 'employee', 2);
+update Account set userrole = 'ADMIN'
+where username= 'oleksii';
+update Account set userrole = 'admin'
+where username= 'oleksii';
 /* notice:
  * automatically added sequences
  * and foreign key constraints

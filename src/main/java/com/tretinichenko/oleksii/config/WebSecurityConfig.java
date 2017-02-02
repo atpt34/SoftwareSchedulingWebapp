@@ -14,24 +14,26 @@ import com.tretinichenko.oleksii.entity.UserRole;
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	
-//	@Autowired
-//	MyDBAuthenticationService myDBAuthenticationService;
+	@Autowired
+	MyDBAuthenticationService myDBAuthenticationService;
 	
 	@Autowired
 	public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
 		
 		// accounts in memory
-//		auth.inMemoryAuthentication().withUser("").password("").roles(UserRole.EMPLOYEE);
 		// 'ROLE_' appended automatically ! 
 		auth.inMemoryAuthentication()
-			.withUser("employee").password("employee").roles("EMPLOYEE");
+			.withUser("employee").password("employee")
+			.roles(UserRole.EMPLOYEE.toString());
 		auth.inMemoryAuthentication()
-			.withUser("manager").password("manager").roles("MANAGER");
+			.withUser("manager").password("manager")
+			.roles(UserRole.MANAGER.toString());
 		auth.inMemoryAuthentication()
-			.withUser("admin").password("admin").roles("ADMIN");
+			.withUser("admin").password("admin")
+			.roles(UserRole.ADMINISTRATOR.toString());
 		
 		// accounts in database:
-//		auth.userDetailsService(myDBAuthenticationService);
+		auth.userDetailsService(myDBAuthenticationService);
 	}
 
 	@Override
@@ -44,18 +46,35 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 			antMatchers("/", "/index", "/welcome", 
 					"/login", "/home", "/logout").permitAll();
 		
-		// requires EMPLOYEE role:
-		httpSecurity.authorizeRequests().antMatchers("/employee", "/employee/*").access("hasRole('ROLE_EMPLOYEE')");
+		// deny anything else
+//		httpSecurity.authorizeRequests().
+//		antMatchers("/*").denyAll();
+		
+		// requires any role:
+		httpSecurity.authorizeRequests()
+				.antMatchers("/accountInfo")
+				.access(
+				"hasAnyRole('ROLE_EMPLOYEE', 'ROLE_MANAGER', 'ROLE_ADMINISTRATOR')");
 		
 		// requires EMPLOYEE role:
-		httpSecurity.authorizeRequests().antMatchers("/manager", "/manager/*").access("hasRole('ROLE_MANAGER')");
+		httpSecurity.authorizeRequests()
+			.antMatchers("/employee", "/employee/*")
+			.access("hasRole('ROLE_EMPLOYEE')");
+		
+		// requires EMPLOYEE role:
+		httpSecurity.authorizeRequests()
+			.antMatchers("/manager", "/manager/*")
+			.access("hasRole('ROLE_MANAGER')");
 				
 		// requires EMPLOYEE role:
-		httpSecurity.authorizeRequests().antMatchers("/admin", "/admin/*").access("hasRole('ROLE_ADMIN')");
+		httpSecurity.authorizeRequests()
+			.antMatchers("/admin", "/admin/*")
+			.access("hasRole('ROLE_ADMINISTRATOR')");
 		
 		// exception handling page
 		// AccessDeniedException will throw
-		httpSecurity.authorizeRequests().and().exceptionHandling().accessDeniedPage("/403");
+		httpSecurity.authorizeRequests().and().exceptionHandling()
+			.accessDeniedPage("/403");
 		
 		// config for login form
 		httpSecurity.authorizeRequests().and().formLogin()

@@ -31,10 +31,7 @@ public class ApplicationContextConfig {
   // and stores all the properties loaded by the @PropertySource
   @Autowired
   private Environment env;
- 
-//  @Autowired  /// AccountDAO
-//  private UserInfoDAO userInfoDAO;
- 
+  
   @Bean
   public ResourceBundleMessageSource messageSource() {
       ResourceBundleMessageSource rb = new ResourceBundleMessageSource();
