@@ -42,6 +42,9 @@ public class ProjectDAOImpl extends JdbcDaoSupport implements ProjectDAO {
 	
 	private static final String SELECT_ALL_PROJECTS_BY_MANAGER_ID = 
 			"SELECT * FROM Project WHERE projectManagerId = ?";
+	
+	private static final String DELETE_ALL_PROJECTS_BY_MANAGER_ID = 
+			"DELETE FROM Project WHERE projectManagerId = ?";
 
 	@Autowired
 	public ProjectDAOImpl(DataSource dataSource) {

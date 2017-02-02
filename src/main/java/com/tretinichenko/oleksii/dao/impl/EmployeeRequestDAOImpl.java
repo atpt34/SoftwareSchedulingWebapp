@@ -19,7 +19,8 @@ import com.tretinichenko.oleksii.entity.EmployeeRequest;
 
 @Service
 @Transactional
-public class EmployeeRequestDAOImpl extends JdbcDaoSupport implements EmployeeRequestDAO {
+public class EmployeeRequestDAOImpl extends JdbcDaoSupport 
+		implements EmployeeRequestDAO {
 	
 	private static final String SELECT_ALL_EMPLOYEEREQUESTS = 
 			"SELECT * FROM EmployeeRequest";
@@ -28,7 +29,7 @@ public class EmployeeRequestDAOImpl extends JdbcDaoSupport implements EmployeeRe
 			"SELECT * FROM EmployeeRequest WHERE id = ?";
 	
 	private static final String DELETE_EMPLOYEEREQUEST_BY_ID = 
-			"DELETE * FROM EmployeeRequest WHERE id = ?";
+			"DELETE FROM EmployeeRequest WHERE id = ?";
 	
 	private static final String INSERT_EMPLOYEEREQUEST = 
 			"INSERT INTO EmployeeRequest "
@@ -39,10 +40,32 @@ public class EmployeeRequestDAOImpl extends JdbcDaoSupport implements EmployeeRe
 			"UPDATE EmployeeRequest SET "
 			+ "taskId = ?, employeeId = ?, hours = ? WHERE id = ?";
 	
+	private static final String SELECT_ALL_EMPLOYEEREQUESTS_BY_EMPLOYEEID = 
+			"SELECT * FROM EmployeeRequest WHERE employeeId = ?";
+	
+	private static final String DELETE_ALL_EMPLOYEEREQUESTS_BY_EMPLOYEEID = 
+			"DELETE FROM EmployeeRequest WHERE employeeId = ?";
+	
 	private static final String SELECT_ALL_EMPLOYEEREQUESTS_BY_MANAGERID =
 			"SELECT * FROM EmployeeRequest "
 			+ "WHERE employeeId IN ("
 			+ " SELECT id"
+			+ " FROM Employee"
+			+ " WHERE managerId = ? )";
+	
+	private static final String SELECT_ALL_EMPLOYEEREQUESTS_BY_MANAGERID2 = 
+			"SELECT * FROM EmployeeRequest AS er "
+			+ "INNER JOIN Employee AS e "
+			+ " ON e.id = er.employeeId"
+			+ "WHERE e.managerId = ? ";
+	
+	private static final String DELETE_ALL_EMPLOYEEREQUESTS_BY_TASKID =
+			"DELETE FROM EmployeeRequest WHERE taskId = ?";
+	
+	private static final String DELETE_ALL_EMPLOYEEREQUESTS_BY_MANAGERID = 
+			"DELETE FROM EmployeeRequest "
+			+ "WHERE employeeId IN ("
+			+ " SELECT id "
 			+ " FROM Employee"
 			+ " WHERE managerId = ? )";
 	
@@ -54,7 +77,8 @@ public class EmployeeRequestDAOImpl extends JdbcDaoSupport implements EmployeeRe
 	@Override
 	public EmployeeRequest findEmployeeRequestById(int requestId) {
 		try {
-			return this.getJdbcTemplate().queryForObject(SELECT_EMPLOYEEREQUEST_BY_ID,
+			return this.getJdbcTemplate()
+					.queryForObject(SELECT_EMPLOYEEREQUEST_BY_ID,
 					new EmployeeRequestRowMapper(), requestId);
 		} catch(EmptyResultDataAccessException e){
 			return null;
@@ -86,8 +110,10 @@ public class EmployeeRequestDAOImpl extends JdbcDaoSupport implements EmployeeRe
 				new EmployeeRequestRowMapper());
 	}
 
-	private static final class EmployeeRequestRowMapper implements RowMapper<EmployeeRequest> {
-		public EmployeeRequest mapRow(ResultSet rs, int rowNum) throws SQLException {
+	private static final class EmployeeRequestRowMapper 
+			implements RowMapper<EmployeeRequest> {
+		public EmployeeRequest mapRow(ResultSet rs, int rowNum) 
+				throws SQLException {
 			int id = rs.getInt("id");
 			int taskId = rs.getInt("taskId");
 			int employeeId = rs.getInt("employeeId");

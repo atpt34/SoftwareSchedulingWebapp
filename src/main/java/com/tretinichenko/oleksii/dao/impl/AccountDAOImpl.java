@@ -24,6 +24,22 @@ public class AccountDAOImpl extends JdbcDaoSupport implements AccountDAO {
 	private static final String SELECT_ACCOUNT_BY_USERNAME = 
 			"SELECT * FROM Account WHERE userName = ?";
 	
+	private static final String SELECT_ALL_ACCOUNTS = 
+			"SELECT * FROM Account";
+	
+	private static final String UPDATE_ACCOUNT = 
+			"UPDATE Account "
+			+ "SET password = ?, userRole = ?, employeeId = ? "
+			+ "WHERE userName = ?";
+	
+	private static final String INSERT_ACCOUNT = 
+			"INSERT INTO "
+			+ "Account(userName, password, userRole, employeeId) "
+			+ "VALUES(?, ?, ?, ?)";
+	
+	private static final String DELETE_ACCOUNT_BY_USERNAME = 
+			"DELETE FROM Account WHERE userName = ?";
+	
 	@Autowired
 	public AccountDAOImpl(DataSource dataSource){
 		this.setDataSource(dataSource);
@@ -37,21 +53,29 @@ public class AccountDAOImpl extends JdbcDaoSupport implements AccountDAO {
 	}
 
 	@Override
+	public void saveAccount(Account account) {
+		this.getJdbcTemplate().update(INSERT_ACCOUNT, 
+				account.getUserName(), account.getPassword(), 
+				account.getUserRole(), account.getEmployeeId());	
+	}
+	
+	@Override
 	public void updateAccount(Account account) {
-		// TODO Auto-generated method stub
-
+		this.getJdbcTemplate().update(UPDATE_ACCOUNT, 
+				account.getPassword(), account.getUserRole(), 
+				account.getEmployeeId(), account.getUserName());
 	}
 
 	@Override
 	public void deleteAccountByName(String userName) {
-		// TODO Auto-generated method stub
-
+		this.getJdbcTemplate().update(DELETE_ACCOUNT_BY_USERNAME, userName);
 	}
 
 	@Override
 	public List<Account> listAllAccounts() {
-		// TODO Auto-generated method stub
-		return null;
+
+		return this.getJdbcTemplate().query(SELECT_ALL_ACCOUNTS, 
+				new AccountRowMapper());
 	}
 
 	private static final class AccountRowMapper implements RowMapper<Account> {
@@ -63,4 +87,6 @@ public class AccountDAOImpl extends JdbcDaoSupport implements AccountDAO {
 			return new Account(userName, password, userRole, employeeId);
 		}
 	}
+
+
 }

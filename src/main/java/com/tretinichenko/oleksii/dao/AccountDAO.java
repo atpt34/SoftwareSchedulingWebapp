@@ -8,6 +8,8 @@ public interface AccountDAO {
 
 	Account findAccountByName(String userName);
 	
+	void saveAccount(Account account);
+	
 	void updateAccount(Account account);
 	
 	void deleteAccountByName(String userName); 

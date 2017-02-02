@@ -42,6 +42,9 @@ public class SprintDAOImpl extends JdbcDaoSupport implements SprintDAO {
 	private static final String SELECT_ALL_SPRINTS_BY_PROJECT_ID =
 			"SELECT * FROM Sprint WHERE projectId = ?";
 	
+	private static final String DELETE_ALL_SPRINTS_BY_PROJECT_ID = 
+			"DELETE FROM Sprint WHERE projectId = ?";
+	
 	@Autowired
 	public SprintDAOImpl(DataSource dataSource) {
 		this.setDataSource(dataSource);
@@ -50,7 +53,8 @@ public class SprintDAOImpl extends JdbcDaoSupport implements SprintDAO {
 	@Override
 	public Sprint findSprintById(int sprintId) {
 		try {
-			return this.getJdbcTemplate().queryForObject(SELECT_SPRINT_BY_ID, new SprintRowMapper(), sprintId);
+			return this.getJdbcTemplate().queryForObject(SELECT_SPRINT_BY_ID,
+					new SprintRowMapper(), sprintId);
 		} catch(EmptyResultDataAccessException e){
 			return null;
 		}

@@ -20,7 +20,8 @@ import com.tretinichenko.oleksii.entity.TaskAssignment;
 
 @Service
 @Transactional
-public class TaskAssignmentDAOImpl extends JdbcDaoSupport implements TaskAssignmentDAO {
+public class TaskAssignmentDAOImpl extends JdbcDaoSupport 
+		implements TaskAssignmentDAO {
 	
 	private static final String SELECT_ALL_TASKASSIGNMENTS = 
 			"SELECT * FROM TaskAssignment";
@@ -44,8 +45,14 @@ public class TaskAssignmentDAOImpl extends JdbcDaoSupport implements TaskAssignm
 	private static final String SELECT_ALL_TASKASSIGNMENTS_BY_EMPLOYEE_ID = 
 			"SELECT * FROM TaskAssignment WHERE employeeId = ?";
 	
+	private static final String DELETE_ALL_TASKASSIGNMENTS_BY_EMPLOYEE_ID = 
+			"DELETE FROM TaskAssignment WHERE employeeId = ?";
+	
 	private static final String SELECT_ALL_TASKASSIGNMENTS_BY_TASK_ID = 
 			"SELECT * FROM TaskAssignment WHERE taskId = ?";
+	
+	private static final String DELETE_ALL_TASKASSIGNEMNTS_BY_TASK_ID = 
+			"DELETE FROM TaskAssignment WHERE taskId = ?";
 	
 	private static final String SELECT_ALL_TASKASSIGNMENTS_BY_MANAGER_ID =
 			"SELECT * \n" + 
@@ -62,21 +69,24 @@ public class TaskAssignmentDAOImpl extends JdbcDaoSupport implements TaskAssignm
 	
 	@Override
 	public void saveTaskAssignment(TaskAssignment taskAssign) {
-		this.getJdbcTemplate().update(INSERT_TASKASSIGNMENT, taskAssign.getId(), 
-				taskAssign.getTaskId(),	taskAssign.getEmployeeId(), 
-				taskAssign.getAcceptedTime(), taskAssign.getFinishTime());
+		this.getJdbcTemplate().update(INSERT_TASKASSIGNMENT, 
+				taskAssign.getId(), taskAssign.getTaskId(),	
+				taskAssign.getEmployeeId(), taskAssign.getAcceptedTime(), 
+				taskAssign.getFinishTime());
 	}
 
 	@Override
 	public void updateTaskAssignment(TaskAssignment taskAssign) {
-		this.getJdbcTemplate().update(UPDATE_TASKASSIGNMENT_BY_ID, taskAssign.getTaskId(), 
-				taskAssign.getEmployeeId(), taskAssign.getAcceptedTime(), 
-				taskAssign.getFinishTime(), taskAssign.getId());
+		this.getJdbcTemplate().update(UPDATE_TASKASSIGNMENT_BY_ID, 
+				taskAssign.getTaskId(), taskAssign.getEmployeeId(), 
+				taskAssign.getAcceptedTime(), taskAssign.getFinishTime(), 
+				taskAssign.getId()); 
 	}
 
 	@Override
 	public void deleteTaskAssignmentById(int taskAssignId) {
-		this.getJdbcTemplate().update(DELETE_TASKASSIGNMENT_BY_ID, taskAssignId);
+		this.getJdbcTemplate().update(DELETE_TASKASSIGNMENT_BY_ID,
+				taskAssignId);
 	}
 
 	@Override
@@ -88,21 +98,25 @@ public class TaskAssignmentDAOImpl extends JdbcDaoSupport implements TaskAssignm
 	@Override
 	public TaskAssignment findTaskAssignmentById(int id) {
 		try {
-			return this.getJdbcTemplate().queryForObject(SELECT_TASKASSIGNMENT_BY_ID,
+			return this.getJdbcTemplate().queryForObject(
+					SELECT_TASKASSIGNMENT_BY_ID,
 					new TaskAssignmentRowMapper(), id);
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
 	}
 
-	private static final class TaskAssignmentRowMapper implements RowMapper<TaskAssignment> {
-		public TaskAssignment mapRow(ResultSet rs, int rowNum) throws SQLException {
+	private static final class TaskAssignmentRowMapper 
+			implements RowMapper<TaskAssignment> {
+		public TaskAssignment mapRow(ResultSet rs, int rowNum) 
+				throws SQLException {
 			int id = rs.getInt("id");
 			int taskId = rs.getInt("taskId");
 			int employeeId = rs.getInt("employeeId");
 			Date acceptedTime = rs.getTimestamp("acceptedTime");
 			Date finishTime = rs.getTimestamp("finishTime");
-			return new TaskAssignment(id, taskId, employeeId, acceptedTime, finishTime);
+			return new TaskAssignment(id, taskId, employeeId, 
+					acceptedTime, finishTime);
 		}
 	}
 }

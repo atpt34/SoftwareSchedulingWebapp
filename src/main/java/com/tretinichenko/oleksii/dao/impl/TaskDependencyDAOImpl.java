@@ -18,7 +18,8 @@ import com.tretinichenko.oleksii.entity.TaskDependency;
 
 @Service
 @Transactional
-public class TaskDependencyDAOImpl extends JdbcDaoSupport implements TaskDependencyDAO {
+public class TaskDependencyDAOImpl extends JdbcDaoSupport 
+		implements TaskDependencyDAO {
 	
 	private static final String SELECT_ALL_TASKDEPENDENCIES = 
 			"SELECT * FROM TaskDependency";
@@ -39,6 +40,19 @@ public class TaskDependencyDAOImpl extends JdbcDaoSupport implements TaskDepende
 			+ "(id, taskId, dependencyTaskId) "
 			+ "VALUES (?, ?, ?)";
 	
+	private static final String SELECT_ALL_TASKDEPENDENCIES_BY_TASKID = 
+			"SELECT * FROM TaskDependency WHERE taskId = ?";
+	
+	private static final String DELETE_ALL_TASKDEPENDENCIES_BY_TASKID = 
+			"DELETE FROM TaskDependency WHERE taskId = ?";
+	
+	private static final String 
+		SELECT_ALL_TASKDEPENDENCIES_BY_DEPENDENCYTASKID = 
+		"SELECT * FROM TaskDependency WHERE dependencyTaskId = ?";
+	private static final String 
+		DELETE_ALL_TASKDEPENDENCIES_BY_DEPENDENCYTASKID = 
+		"DELETE FROM TaskDependency WHERE dependencyTaskId = ?";
+	
 	@Autowired
 	public TaskDependencyDAOImpl(DataSource dataSource) {
 		this.setDataSource(dataSource);
@@ -47,7 +61,9 @@ public class TaskDependencyDAOImpl extends JdbcDaoSupport implements TaskDepende
 	@Override
 	public TaskDependency findTaskDependencyById(int taskDepId) {
 		try {
-			return this.getJdbcTemplate().queryForObject(SELECT_TASKDEPENDENCY_BY_ID, new TaskDependencyRowMapper(), taskDepId);
+			return this.getJdbcTemplate()
+					.queryForObject(SELECT_TASKDEPENDENCY_BY_ID, 
+							new TaskDependencyRowMapper(), taskDepId);
 		} catch(EmptyResultDataAccessException e){
 			return null;
 		}
@@ -77,8 +93,10 @@ public class TaskDependencyDAOImpl extends JdbcDaoSupport implements TaskDepende
 				new TaskDependencyRowMapper());
 	}
 
-	private static final class TaskDependencyRowMapper implements RowMapper<TaskDependency> {
-		public TaskDependency mapRow(ResultSet rs, int rowNum) throws SQLException {
+	private static final class TaskDependencyRowMapper 
+			implements RowMapper<TaskDependency> {
+		public TaskDependency mapRow(ResultSet rs, int rowNum)
+				throws SQLException {
 			int id = rs.getInt("id");
 			int taskId = rs.getInt("taskId");
 			int dependencyTaskId = rs.getInt("dependencyTaskId");

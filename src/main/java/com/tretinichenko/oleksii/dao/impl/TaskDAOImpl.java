@@ -43,6 +43,9 @@ public class TaskDAOImpl extends JdbcDaoSupport implements TaskDAO {
 	private static final String SELECT_ALL_TASKS_BY_SPRINT_ID =
 			"SELECT * FROM Task WHERE sprintId = ?";
 	
+	private static final String DELETE_ALL_TASKS_BY_SPRINT_ID = 
+			"DELETE FROM Task WHERE sprintId = ?";
+	
 	@Autowired
 	public TaskDAOImpl(DataSource dataSource) {
 		this.setDataSource(dataSource);

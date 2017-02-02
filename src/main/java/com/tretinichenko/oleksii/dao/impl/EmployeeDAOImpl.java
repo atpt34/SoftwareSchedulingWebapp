@@ -52,6 +52,9 @@ public class EmployeeDAOImpl extends JdbcDaoSupport implements EmployeeDAO {
 	private static final String SELECT_ALL_EMPLOYEES_WHERE_NAME_LIKE =
 			"SELECT * FROM Employee WHERE name LIKE '%?%'";
 	
+	private static final String DELETE_ALL_EMPLOYEES_BY_MANAGER_ID = 
+			"DELETE FROM Employee WHERE managerId = ?";
+	
 	@Autowired
 	public EmployeeDAOImpl(DataSource dataSource) {
 		this.setDataSource(dataSource);
@@ -62,7 +65,8 @@ public class EmployeeDAOImpl extends JdbcDaoSupport implements EmployeeDAO {
 //		String sql = "SELECT * FROM Employee WHERE id = ?";
 		try {
 //			return this.getJdbcTemplate().queryForObject(sql, new EmployeeRowMapper(), employeeId);
-			return this.getJdbcTemplate().queryForObject(SELECT_EMPLOYEE_BY_ID, new EmployeeRowMapper(), employeeId);
+			return this.getJdbcTemplate().queryForObject(SELECT_EMPLOYEE_BY_ID,
+					new EmployeeRowMapper(), employeeId);
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
@@ -74,16 +78,17 @@ public class EmployeeDAOImpl extends JdbcDaoSupport implements EmployeeDAO {
 		int managerId = employee.getManagerId();
 //		this.getJdbcTemplate().update(sql, employee.getId(), employee.getName(),
 //				employee.getEmail(), managerId == 0 ? null : managerId);
-		this.getJdbcTemplate().update(INSERT_EMPLOYEE, employee.getId(), employee.getName(),
+		this.getJdbcTemplate().update(INSERT_EMPLOYEE,
+				employee.getId(), employee.getName(),
 				employee.getEmail(), managerId == 0 ? null : managerId);
-//		SimpleJdbcInsert jdbcInsert = new SimpleJdbcInsert(this.getJdbcTemplate()).withTableName("Employee");
-//		jdbcInsert.setGeneratedKeyName("id");
-//		Map<String, Object> args = new HashMap<String, Object>();
-//		args.put("managerId", employee.getManagerId());
-//		args.put("name", employee.getName());
-//		args.put("email", employee.getEmail());
-//		long spittleId = jdbcInsert.executeAndReturnKey(args).longValue();
-//		return spittleId;
+		/*SimpleJdbcInsert jdbcInsert = new SimpleJdbcInsert(this.getJdbcTemplate()).withTableName("Employee");
+		jdbcInsert.setGeneratedKeyName("id");
+		Map<String, Object> args = new HashMap<String, Object>();
+		args.put("managerId", employee.getManagerId());
+		args.put("name", employee.getName());
+		args.put("email", employee.getEmail());
+		long spittleId = jdbcInsert.executeAndReturnKey(args).longValue();
+		return spittleId;*/
 		
 	}
 	
@@ -98,53 +103,33 @@ public class EmployeeDAOImpl extends JdbcDaoSupport implements EmployeeDAO {
 		int managerId = employee.getManagerId();
 //		this.getJdbcTemplate().update("UPDATE Employee SET name = ?, email = ?, managerId = ? WHERE id = ?", 
 //				employee.getName(), employee.getEmail(), employee.getManagerId(), employee.getId());
-		this.getJdbcTemplate().update(UPDATE_EMPLOYEE_BY_ID, employee.getName(),
-				employee.getEmail(), managerId == 0 ? null : managerId, employee.getId());
+		this.getJdbcTemplate().update(UPDATE_EMPLOYEE_BY_ID, 
+				employee.getName(),	employee.getEmail(), 
+				managerId == 0 ? null : managerId, employee.getId());
 	}
 	
 	@Override
 	public List<Employee> listAllEmployees() {
 //		String sql = "SELECT * FROM Employee";
 //		return this.getJdbcTemplate().query(sql, new EmployeeRowMapper());
-		return this.getJdbcTemplate().query(SELECT_ALL_EMPLOYEES, new EmployeeRowMapper());
+		return this.getJdbcTemplate().query(SELECT_ALL_EMPLOYEES,
+				new EmployeeRowMapper());
 	}
 
-	private static final class EmployeeRowMapper implements RowMapper<Employee> {
+	private static final class EmployeeRowMapper 
+			implements RowMapper<Employee> {
 		public Employee mapRow(ResultSet rs, int rowNum) throws SQLException {
 			int id = rs.getInt("id");
 //			String message = rs.getString("message");
 //			Date postedTime = rs.getTimestamp("postedTime");
-
 			String name = rs.getString("name");
-//			String password = rs.getString("password");
-//			String fullName = rs.getString("fullname");
 			String email = rs.getString("email");
 //			boolean updateByEmail = rs.getBoolean("updateByEmail");
 			int managerId = rs.getInt("managerId");
-//			Employee employee = new Employee(id, name, email, managerId);
+
 			return new Employee(id, name, email, managerId);
 		}
 	}
 
 	
-
-
-	
-	/*
-	private static final class SpittleRowMapper implements RowMapper<Spittle> {
-		public Spittle mapRow(ResultSet rs, int rowNum) throws SQLException {
-			long id = rs.getLong("id");
-			String message = rs.getString("message");
-			Date postedTime = rs.getTimestamp("postedTime");
-			long spitterId = rs.getLong("spitterId");
-			String username = rs.getString("username");
-			String password = rs.getString("password");
-			String fullName = rs.getString("fullname");
-			String email = rs.getString("email");
-			boolean updateByEmail = rs.getBoolean("updateByEmail");
-			Spitter spitter = new Spitter(spitterId, username, password, fullName, email, updateByEmail);
-			return new Spittle(id, spitter, message, postedTime);
-		}
-	}
-	*/
 }
