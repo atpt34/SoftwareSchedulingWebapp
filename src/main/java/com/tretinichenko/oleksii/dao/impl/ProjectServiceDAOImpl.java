@@ -27,24 +27,13 @@ public class ProjectServiceDAOImpl extends JdbcDaoSupport implements ProjectServ
 	}
 	
 	
-	private static final String EMPLOYEE_OVERTIMES_ESTIMATED_BY_PROJECTID = 
+	private static final String EMPLOYEE_OVERTIME_ESTIMATE_BY_PROJECTID = 
 			"SELECT \n" + 
-			"EXTRACT(WEEK FROM temp.starttime) AS \"weekOfYear\",\n" + 
-			"temp.employeeid AS \"employeeId\",\n" + 
-			"SUM(temp.hoursestimate) AS \"workingHours\"\n" + 
-			"FROM (\n" + 
-			" SELECT \n" + 
-			" t.startTime AS starttime,\n" + 
-			" t.hoursEstimate AS hoursestimate,\n" + 
-			" ta.employeeId AS employeeid\n" + 
-			" FROM Task AS t\n" + 
-			" INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			" INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			" WHERE s.projectId = ?\n" + 
-			") AS temp\n" + 
-			"GROUP BY \n" + 
 			"\"weekOfYear\",\n" + 
-			"\"employeeId\" "; 	
+			"\"employeeId\",\n" + 
+			"\"workingHours\"\n" + 
+			"FROM EmployeeOvertimeEstimateFunction(?) \n" + 
+			"ORDER BY \"weekOfYear\" ASC, \"employeeId\" ASC"; 	
 	
 	private static final class EmployeeOvertimeEstimatedRowMapper 
 			implements RowMapper<EmployeeOvertimeEstimated> {
@@ -61,26 +50,16 @@ public class ProjectServiceDAOImpl extends JdbcDaoSupport implements ProjectServ
 	public List<EmployeeOvertimeEstimated>
 			employeeOvertimeEstimated(int projectId) {
 		return this.getJdbcTemplate().query(
-				EMPLOYEE_OVERTIMES_ESTIMATED_BY_PROJECTID,
+				EMPLOYEE_OVERTIME_ESTIMATE_BY_PROJECTID,
 				new EmployeeOvertimeEstimatedRowMapper(), projectId);
 	}
 
 	private static final String HUMAN_HOURS_SPRINT_BY_PROJECTID = 
 			"SELECT \n" + 
-			"temp.sprintid AS \"sprintId\",\n" + 
-			"SUM(temp.hoursactualtime) AS \"totalHumanHours\"\n" + 
-			"FROM (\n" + 
-			" SELECT \n" + 
-			" t.sprintId AS sprintid,\n" + 
-			" FLOOR("
-			+ "EXTRACT(EPOCH FROM (ta.finishTime - ta.acceptedTime)) / 3600) "
-			+ "AS hoursactualtime\n" + 
-			" FROM TaskAssignment AS ta\n" + 
-			" INNER JOIN Task AS t ON t.id = ta.taskId\n" + 
-			" INNER JOIN Sprint AS s ON s.id = t.sprintId\n" + 
-			" WHERE s.projectId = ?\n" + 
-			") AS temp\n" + 
-			"GROUP BY temp.sprintid";
+			"\"sprintId\", \n" + 
+			"\"totalHumanHours\" \n" + 
+			"FROM SprintHumanHoursFunction(?)"
+			+ "ORDER BY \"sprintId\"";
 	
 	@Override
 	public List<HumanHoursBySprint> humanHoursBySprint(int projectId) {
@@ -100,25 +79,13 @@ public class ProjectServiceDAOImpl extends JdbcDaoSupport implements ProjectServ
 
 	private static final int OVERTIME_HOURS_THRESHOLD = 40;
 	private static final String EMPLOYEE_OVERTIME_ACTUAL_BY_PROJECTID = 
-			"SELECT \n" + 
-			"EXTRACT (WEEK FROM temp.acceptedtime) AS \"weekOfYear\", \n" + 
-			"temp.employeeid AS \"employeeId\", \n" + 
-			"(SUM(temp.hoursactualtime) - " + OVERTIME_HOURS_THRESHOLD + 
-			"  ) AS \"overtimeHours\" \n" + 
-			"FROM (\n" + 
-			" SELECT\n" + 
-			" ta.acceptedTime AS acceptedtime,\n" + 
-			" FLOOR("
-			+ "EXTRACT(EPOCH FROM (ta.finishTime - ta.acceptedTime)) / 3600 )"
-			+ "  AS \"hoursactualtime\",\n" + 
-			" ta.employeeId AS employeeid\n" + 
-			" FROM Task AS t\n" + 
-			" INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			" INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			" WHERE s.projectId = ?\n" + 
-			") AS temp\n" + 
-			"GROUP BY \"weekOfYear\", \"employeeId\"\n" + 
-			"HAVING SUM(temp.hoursactualtime) >= " + OVERTIME_HOURS_THRESHOLD;
+			"SELECT  \n" + 
+			"\"weekOfYear\",  \n" + 
+			"\"employeeId\",  \n" + 
+			"\"overtimeHours\"  \n" + 
+			"FROM employeeOvertimeActualFunction(?, "
+			+ OVERTIME_HOURS_THRESHOLD + ")";
+	
 	@Override
 	public List<EmployeeOvertimeActual> employeeOvertimeActual(int projectId) {
 		return this.getJdbcTemplate().query(
@@ -137,324 +104,75 @@ public class ProjectServiceDAOImpl extends JdbcDaoSupport implements ProjectServ
 				projectId);
 	}
 
-	private static final String SPRINT_SEQUENCE_ESTIMATED = 
-			"SELECT \n" + 
-			"temp1.sprintId AS \"sprintId\", \n" + 
-			"temp1.dependsOnSprint AS \"dependencySprint\", \n" + 
-			"temp1.sprintStartTime AS \"sprintStartTime\", \n" + 
-			"temp2.sprintFinishTime AS \"estimatedDependencyFinishTime\"\n" + 
-			"FROM (\n" + 
-			"	SELECT \n" + 
-			"	s.id AS \"sprintId\",\n" + 
-			"	s.dependsOn AS \"dependsOnSprint\",\n" + 
-			"	MIN(t.startTime) AS \"sprintStartTime\"\n" + 
-			"	FROM Sprint AS s\n" + 
-			"	INNER JOIN Task AS t ON t.sprintId = s.id\n" + 
-			"	WHERE s.projectId = ?\n" + 
-			"	GROUP BY s.id\n" + 
-			") AS temp1\n" + 
-			"LEFT JOIN (\n" + 
-			"	SELECT \n" + 
-			"	s.id AS \"sid\",\n" + 
-			"	MAX(DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR))" + 
-			" 		AS \"sprintFinishTime\"\n" + 
-			"	FROM Sprint AS s\n" + 
-			"	INNER JOIN Task AS t ON t.sprintId = s.id\n" + 
-			"	WHERE s.projectId = ?\n" + 
-			"	GROUP BY s.id\n" + 
-			") AS temp2 ON temp1.dependsOnSprint = temp2.sid";
+	private static final String SPRINT_SEQUENCE_ESTIMATE = 
+			"SELECT *\n" + 
+			"FROM sprintSequenceEstimateFunction(?)\n" + 
+			"ORDER BY \"sprintId\"";
 	
-	private static final String TASKDEPENDENCY_SEQUENCE_ESTIMATED = 
-			"SELECT  \n" + 
-			"td.taskId AS \"taskId\", \n" + 
-			"td.dependencyTaskId AS \"dependencyTaskId\", \n" + 
-			"t1.startTime AS \"taskStartTime\", \n" + 
-			"MAX(DATE_ADD(t2.startTime, INTERVAL t2.hoursEstimate HOUR)) "
-			+ " AS \"dependencyTasksMaxFinishTime\" \n" + 
-			"FROM TaskDependency AS td \n" + 
-			"INNER JOIN Task AS t1 ON td.taskId = t1.id \n" + 
-			"INNER JOIN Task AS t2 ON td.dependencyTaskId = t2.id \n" + 
-			"GROUP BY taskId";
+	private static final String TASKDEPENDENCY_SEQUENCE_ESTIMATE = 
+			"SELECT * \n" + 
+			"FROM taskDependencySequenceFunction(?)\n" + 
+			"ORDER BY \"taskId\"";
 
-	private static final String SPRINT_ON_TIME_ESTIMATED = 
-			"SELECT \n" + 
-			"s.id AS \"sprintId\", \n" + 
-			"MIN(t.startTime) AS \"sprintStartTime\", \n" + 
-			"MAX(DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR))"
-			+ " AS \"sprintEstFinishTime\"\n" + 
-			"FROM Sprint AS s \n" + 
-			"INNER JOIN Task AS t ON t.sprintId = s.id\n" + 
-			"WHERE s.projectId = ?\n" + 
-			"GROUP BY s.id";
+	private static final String SPRINT_ON_TIME_ESTIMATE = 
+			"SELECT * \n" + 
+			"FROM sprintOnTimeEstimateFunction(?)\n" + 
+			"ORDER BY \"sprintId\"";
 	
-	private static final String PROJECT_ON_TIME_ESTIMATED = 
-			"SELECT \n" + 
-			"p.id AS \"projectId\", \n" + 
-			"p.name AS \"projectName\", \n" + 
-			"p.startDate AS \"projectStart\",\n" + 
-			"p.endDate AS \"projectEnd\",\n" + 
-			"MIN(t.startTime) AS \"projectTaskStartTime\", \n" + 
-			"MAX(DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR)) "
-			+ "AS \"projectTaskEstFinishTime\" \n" + 
-			"FROM Sprint AS s \n" + 
-			"INNER JOIN Project AS p ON p.id = s.projectId \n" + 
-			"INNER JOIN Task AS t ON t.sprintId = s.id \n" + 
-			"WHERE s.projectId = ?";
+	private static final String PROJECT_ON_TIME_ESTIMATE = 
+			"SELECT * \n" + 
+			"FROM projectOnTimeEstimateFunction(?)";
 	
-	private static final String TOTAL_EMPLOYEE_OVERTIMES_ESTIMATED = 
-			"SELECT \n" + 
-			"temp2.employeeId AS \"employeeId\",\n" + 
-			"COUNT(*) AS \"numOfOvertimes\"\n" + 
-			"FROM ( \n" + 
-			"	SELECT\n" + 
-			"	WEEKOFYEAR(temp.startTime) AS \"weekOfYear\", \n" + 
-			"	temp.employeeId AS \"employeeId\", \n" + 
-			"	temp.sprintId AS \"sprintId\",\n" + 
-			"	temp.projectId AS \"projectId\",\n" + 
-			"	SUM(temp.hoursEstimatedTime) AS \"estWorkingHours\"\n" + 
-			"	FROM (\n" + 
-			"		SELECT \n" + 
-			"	    t.startTime AS \"startTime\", \n" + 
-			"		TIMESTAMPDIFF(HOUR, t.startTime, "
-			+ "		 DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR))"
-			+ "		 AS \"hoursEstimatedTime\",\n" + 
-			"		ta.employeeId AS \"employeeId\",\n" + 
-			"    		t.sprintId AS \"sprintId\",\n" + 
-			"    		s.projectId AS \"projectId\"\n" + 
-			"		FROM Task AS t\n" + 
-			"		INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"		INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			"		WHERE s.projectId = ?\n" + 
-			"	) AS temp\n" + 
-			"	GROUP BY \n" + 
-			"	WEEKOFYEAR(temp.startTime), \n" + 
-			"	temp.employeeId\n" + 
-			"	HAVING estWorkingHours > " + OVERTIME_HOURS_THRESHOLD + "\n" + 
-			") AS temp2\n" + 
-			"GROUP BY employeeId\n" + 
-			"ORDER BY employeeId ASC";
+	private static final String TOTAL_EMPLOYEE_OVERTIME_ESTIMATE = 
+			"SELECT *\n" + 
+			"FROM totalEmployeeOvertimeFunction(?, " + OVERTIME_HOURS_THRESHOLD + ")\n" + 
+			"ORDER BY \"employeeId\"";
 	
-	private static final String TOTAL_SPRINT_OVERTIMES_ESTIMATED = 
-			"SELECT \n" + 
-			"temp2.sprintId AS \"sprintId\",\n" + 
-			"COUNT(*) AS \"numOfOvertimes\"\n" + 
-			"FROM ( \n" + 
-			"	SELECT\n" + 
-			"	WEEKOFYEAR(temp.startTime) AS \"weekOfYear\", \n" + 
-			"	temp.employeeId AS \"employeeId\", \n" + 
-			"	temp.sprintId AS \"sprintId\",\n" + 
-			"	temp.projectId AS \"projectId\",\n" + 
-			"	SUM(temp.hoursEstimatedTime) AS \"estWorkingHours\"\n" + 
-			"	FROM (\n" + 
-			"		SELECT \n" + 
-			"	    t.startTime AS \"startTime\", \n" + 
-			"		TIMESTAMPDIFF(HOUR, t.startTime, "
-			+ "		 DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR))"
-			+ "		 AS \"hoursEstimatedTime\",\n" + 
-			"		ta.employeeId AS \"employeeId\",\n" + 
-			"    	t.sprintId AS \"sprintId\",\n" + 
-			"    	s.projectId AS \"projectId\"\n" + 
-			"		FROM Task AS t\n" + 
-			"		INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"		INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			"		WHERE s.projectId = ?\n" + 
-			"	) AS temp\n" + 
-			"	GROUP BY \n" + 
-			"	WEEKOFYEAR(temp.startTime), \n" + 
-			"	temp.employeeId\n" + 
-			"	HAVING estWorkingHours > " + OVERTIME_HOURS_THRESHOLD + "\n" + 
-			") AS temp2\n" + 
-			"GROUP BY sprintId\n" + 
-			"ORDER BY sprintId ASC";
+	private static final String TOTAL_SPRINT_OVERTIME_ESTIMATE = 
+			"SELECT * \n" + 
+			"FROM totalSprintOvertimeFunction(?, " + OVERTIME_HOURS_THRESHOLD + ")\n" + 
+			"ORDER BY \"sprintId\"";
 	
-	private static final String TOTAL_PROJECT_OVERTIMES_ESTIMATED = 
-			"SELECT \n" + 
-			"temp2.projectId AS \"projectId\",\n" + 
-			"COUNT(*) AS \"numOfOvertimes\"\n" + 
-			"FROM ( \n" + 
-			"	SELECT\n" + 
-			"	WEEKOFYEAR(temp.startTime) AS \"weekOfYear\", \n" + 
-			"	temp.employeeId AS \"employeeId\", \n" + 
-			"	temp.sprintId AS \"sprintId\",\n" + 
-			"	temp.projectId AS \"projectId\",\n" + 
-			"	SUM(temp.hoursEstimatedTime) AS \"estWorkingHours\"\n" + 
-			"	FROM (\n" + 
-			"		SELECT \n" + 
-			"	    t.startTime AS \"startTime\", \n" + 
-			"		TIMESTAMPDIFF(HOUR, t.startTime, "
-			+ "		 DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR)) "
-			+ "		 AS \"hoursEstimatedTime\",\n" + 
-			"		ta.employeeId AS \"employeeId\",\n" + 
-			"    	t.sprintId AS \"sprintId\",\n" + 
-			"    	s.projectId AS \"projectId\"\n" + 
-			"		FROM Task AS t\n" + 
-			"		INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"		INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			"		WHERE s.projectId = ?\n" + 
-			"	) AS temp\n" + 
-			"	GROUP BY \n" + 
-			"	WEEKOFYEAR(temp.startTime), \n" + 
-			"	temp.employeeId\n" + 
-			"	HAVING estWorkingHours > " + OVERTIME_HOURS_THRESHOLD + "\n" + 
-			") AS temp2\n" + 
-			"GROUP BY projectId\n" + 
-			"ORDER BY projectId DESC";
+	private static final String TOTAL_PROJECT_OVERTIME_ESTIMATE = 
+			"SELECT \"numOfOvertimes\"\n" + 
+			"FROM totalProjectOvertimeFunction(?, " + OVERTIME_HOURS_THRESHOLD + ")";
 	
 	
 	private static final String TOTAL_TASK_DONE_ON_TIME = 
-			"SELECT \n" + 
-			"COUNT(*) AS \"numOfTasksDoneOnTime\"\n" + 
-			"FROM (\n" + 
-			"	SELECT \n" + 
-			"	t.id,\n" + 
-			"	TIMESTAMPDIFF(HOUR,  ta.finishTime, "
-			+ "  DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR))"
-			+ "  AS \"hoursDeviation\"\n" + 
-			"	FROM Task AS t\n" + 
-			"    INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			"	INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"    WHERE s.projectId = ? \n" + 
-			"    ) AS temp\n" + 
-			"WHERE temp.hoursDeviation >= 0";
+			"";
 	
 	private static final String TOTAL_TASK_DONE_WITH_DILATION = 
-			"SELECT \n" + 
-			"COUNT(*) AS \"numOfTasksNotDoneOnTime\" \n" + 
-			"FROM (\n" + 
-			"	SELECT \n" + 
-			"	t.id,\n" + 
-			"	TIMESTAMPDIFF(HOUR,  ta.finishTime,"
-			+ "  DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR))"
-			+ "  AS \"hoursDeviation\" \n" + 
-			"	FROM Task AS t\n" + 
-			"    INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			"	INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"    WHERE s.projectId = ? \n" + 
-			"    ) AS temp\n" + 
-			"WHERE temp.hoursDeviation < 0";
+			"";
 	
 	private static final String TOTAL_SPRINT_DONE_ON_TIME =
-			"SELECT \n" + 
-			"COUNT(temp.sprintId) AS \"numOfSprintsDoneOnTime\"\n" + 
-			"FROM (\n" + 
-			"	SELECT \n" + 
-			"	s.id AS \"sprintId\",\n" + 
-			"	TIMESTAMPDIFF(HOUR,  MAX(ta.finishTime),"
-			+ "  MAX(DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR)))"
-			+ "  AS \"hoursDeviation\"\n" + 
-			"	FROM Task AS t\n" + 
-			"	INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"	INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			"    WHERE s.projectId = ?\n" + 
-			"	GROUP BY s.id\n" + 
-			"    ) AS temp\n" + 
-			"WHERE temp.hoursDeviation >= 0";
+			"";
 	
 	private static final String TOTAL_SPRINT_DONE_WITH_DILATION =
-			"SELECT \n" + 
-			"COUNT(temp.sprintId) AS \"numOfSprintsDoneWithDilation\" \n" + 
-			"FROM (\n" + 
-			"	SELECT \n" + 
-			"	s.id AS \"sprintId\",\n" + 
-			"	TIMESTAMPDIFF(HOUR,  MAX(ta.finishTime),"
-			+ "  MAX(DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR)))"
-			+ "  AS \"hoursDeviation\"\n" + 
-			"	FROM Task AS t\n" + 
-			"	INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"	INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			"    WHERE s.projectId = ?\n" + 
-			"	GROUP BY s.id\n" + 
-			"    ) AS temp\n" + 
-			"WHERE temp.hoursDeviation < 0";
+			"";
 	
-	private static final String TASK_ACTUAL_DURATIONS = 
-			"SELECT \n" + 
-			"t.id AS \"taskId\", \n" + 
-			"TIMESTAMPDIFF(HOUR, ta.acceptedTime, ta.finishTime)"
-			+ " AS \"hoursTaskDuration\"\n" + 
-			"FROM Task AS t\n" + 
-			"INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			"WHERE s.projectId = ?";
+	private static final String TASK_ACTUAL_DURATION = 
+			"";
 	
-	private static final String SPRINT_ACTUAL_DURATIONS =
-			"SELECT \n" + 
-			"t.sprintId AS \"sprintId\", \n" + 
-			"TIMESTAMPDIFF(HOUR, MIN(ta.acceptedTime), MAX(ta.finishTime))"
-			+ " AS \"hoursSprintDuration\"\n" + 
-			"FROM Task AS t\n" + 
-			"INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			"WHERE s.projectId = ? \n" + 
-			"GROUP BY s.id";
+	private static final String SPRINT_ACTUAL_DURATION =
+			"";
 	
 	private static final String PROJECT_ACTUAL_DURATION = 
-			"SELECT \n" + 
-			"TIMESTAMPDIFF(HOUR, MIN(ta.acceptedTime), MAX(ta.finishTime))"
-			+ " AS \"hoursProjecDuration\"\n" + 
-			"FROM Task AS t\n" + 
-			"INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			"WHERE s.projectId = ? \n"; 
+			""; 
 	
 	private static final String PROJECT_HUMAN_HOURS_BY_PROJECTID =
-			"SELECT \n" + 
-			"SUM(TIMESTAMPDIFF(HOUR, ta.acceptedTime, ta.finishTime))"
-			+ " AS \"humanHoursProjectDuration\"\n" + 
-			"FROM Task AS t\n" + 
-			"INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"INNER JOIN Sprint AS s ON t.sprintId = s.id\n" + 
-			"WHERE s.projectId = ? ";
+			"";
 	
-	private static final String TASK_ESTIMATED_ACTUAL_DEVIATIONS = 
-			"SELECT \n" + 
-			"t.id AS \"taskId\", \n" + 
-			"TIMESTAMPDIFF(HOUR,  ta.finishTime,"
-			+ " DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR))"
-			+ " AS \"hoursDeviation\" \n" + 
-			"FROM Task AS t \n" + 
-			"INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id \n" + 
-			"INNER JOIN Sprint AS s ON t.sprintId = s.id \n" + 
-			"WHERE s.projectId = ? \n";
+	private static final String TASK_ESTIMATE_ACTUAL_DEVIATION = 
+			"";
 	
-	private static final String SPRINT_ESTIMATED_ACTUAL_DEVIATIONS =
-			"SELECT \n" + 
-			"s.id AS \"sprintId\", \n" + 
-			"TIMESTAMPDIFF(HOUR,  MAX(ta.finishTime),"
-			+ " MAX(DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR)))"
-			+ " AS \"hoursDeviation\"\n" + 
-			"FROM Task AS t \n" + 
-			"INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id \n" + 
-			"INNER JOIN Sprint AS s ON t.sprintId = s.id \n" + 
-			"WHERE s.projectId = ? \n" + 
-			"GROUP BY s.id";
+	private static final String SPRINT_ESTIMATE_ACTUAL_DEVIATION =
+			"";
 	
 	
 	private static final String EMPLOYEES_ACTIVITY_AT_GIVEN_TIME =
-			"SELECT \n" + 
-			"ta.employeeId AS \"employeeId\",\n" + 
-			"p.id AS \"projectId\", \n" + 
-			"p.name AS \"projectName\", \n" + 
-			"s.id AS \"sprintId\", \n" + 
-			"s.name AS \"sprintName\", \n" + 
-			"t.id AS \"taskId\", \n" + 
-			"t.name AS \"taskName\"\n" + 
-			"FROM Project AS p\n" + 
-			"INNER JOIN Sprint AS s ON p.id = s.projectId\n" + 
-			"INNER JOIN Task AS t ON s.id = t.sprintId\n" + 
-			"INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id\n" + 
-			"WHERE ( \n" + 
-			"( ? BETWEEN ta.acceptedTime AND ta.finishTime) \n" + 
-			")";
+			"";
 	
-	private static final String TASKS_DEVIATIONS_BY_EMPLOYEEID =
-			"SELECT \n" + 
-			"ta.employeeId AS \"employeeId\", \n" + 
-			"t.id AS \"taskId\", \n" + 
-			"TIMESTAMPDIFF(HOUR,  ta.finishTime,"
-			+ " DATE_ADD(t.startTime, INTERVAL t.hoursEstimate HOUR)) "
-			+ "AS \"hoursTaskDeviation\" \n" + 
-			"FROM Task AS t \n" + 
-			"INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id";
+	private static final String EMPLOYEE_TASK_DEVIATION =
+			"";
 	
 }
