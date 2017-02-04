@@ -439,7 +439,11 @@ LEFT JOIN (
 ) AS temp2 ON temp1.dependsOnSprint = temp2.sid
 $BODY$ LANGUAGE SQL;
 
-SELECT *
+SELECT 
+"sprintId",
+"dependencySprint",
+"sprintStartTime",
+"estimateDependencyFinishTime"
 FROM sprintSequenceEstimateFunction(1)
 ORDER BY "sprintId"
 
@@ -472,7 +476,11 @@ WHERE s.projectId = $1
 GROUP BY td.taskId, td.dependencyTaskId, t1.startTime
 $BODY$ LANGUAGE SQL;
 
-SELECT *
+SELECT 
+"taskId",
+"dependencyTaskId",
+"taskStartTime",
+"dependencyTaskMaxFinishTime"
 FROM taskDependencySequenceFunction(1)
 ORDER BY "taskId"
 
@@ -499,7 +507,10 @@ WHERE s.projectId = $1
 GROUP BY s.id
 $BODY$ LANGUAGE SQL;
 
-SELECT * 
+SELECT 
+"sprintId",
+"sprintStartTime",
+"sprintEstFinishTime"
 FROM sprintOnTimeEstimateFunction(1)
 ORDER BY "sprintId"
 
@@ -535,7 +546,13 @@ WHERE s.projectId = $1
 GROUP BY p.id
 $BODY$ LANGUAGE SQL;
 
-SELECT * 
+SELECT 
+"projectId",
+"projectName",
+"projectStart",
+"projectEnd",
+"projectTaskStartTime",
+"projectTaskEstFinishTime"
 FROM projectOnTimeEstimateFunction(1)
 
 
@@ -578,7 +595,9 @@ FROM (
 GROUP BY "employeeId"
 $BODY$ LANGUAGE SQL;
 
-SELECT *
+SELECT 
+"employeeId",
+"numOfOvertimes"
 FROM totalEmployeeOvertimeFunction(1, 10)
 ORDER BY "employeeId"
 
@@ -624,7 +643,9 @@ FROM (
 GROUP BY "sprintId"
 $BODY$ LANGUAGE SQL;
 
-SELECT * 
+SELECT 
+"sprintId", 
+"numOfOvertimes" 
 FROM totalSprintOvertimeFunction(1, 10)
 ORDER BY "sprintId"
 
@@ -684,10 +705,28 @@ FROM (
 WHERE temp.hoursDeviation >= 0
 
 /* numOfTaskDoneOnTimeFunction */
-CREATE OR REPLACE FUNCTION sprintSequenceEstimateFunction (projectId INT)
-RETURNS TABLE ("sprintId" INT, "dependencySprint" INT, "sprintStartTime" TIMESTAMP, "estimateDependencyFinishTime" TIMESTAMP) AS 
+CREATE OR REPLACE FUNCTION numOfTaskDoneOnTimeFunction (projectId INT)
+RETURNS TABLE ("numOfTasksDoneOnTime" INT) AS 
 $BODY$
+SELECT 
+CAST(COUNT(*) AS INT) AS "numOfTasksDoneOnTime"
+FROM (
+ SELECT
+ t.id,
+ FLOOR(EXTRACT(EPOCH FROM (
+  (t.startTime + INTERVAL '1h' * t.hoursEstimate) - MAX(ta.finishTime) ) )  / 3600) AS hoursDeviation
+ FROM Task AS t
+ INNER JOIN Sprint AS s ON t.sprintId = s.id
+ INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
+ WHERE s.projectId = $1
+ GROUP BY t.id
+) AS temp
+WHERE temp.hoursDeviation >= 0
 $BODY$ LANGUAGE SQL;
+
+SELECT 
+"numOfTasksDoneOnTime"
+FROM numOfTaskDoneOnTimeFunction(1);
 
 
 /* NUM OF TASKS DONE WITH DILATION */
@@ -707,10 +746,28 @@ FROM (
 WHERE temp.hoursDeviation < 0
 
 /* numOfTaskDoneWithDilationFunction */
-CREATE OR REPLACE FUNCTION sprintSequenceEstimateFunction (projectId INT)
-RETURNS TABLE ("sprintId" INT, "dependencySprint" INT, "sprintStartTime" TIMESTAMP, "estimateDependencyFinishTime" TIMESTAMP) AS 
+CREATE OR REPLACE FUNCTION numOfTaskDoneWithDilationFunction (projectId INT)
+RETURNS TABLE ("numOfTaskDoneWithDilation" INT) AS 
 $BODY$
+SELECT 
+CAST(COUNT(*) AS INT) AS "numOfTasksDoneWithDilation"
+FROM (
+ SELECT
+ t.id,
+ FLOOR(EXTRACT(EPOCH FROM (
+  (t.startTime + INTERVAL '1h' * t.hoursEstimate) - MAX(ta.finishTime) ) )  / 3600) AS hoursDeviation
+ FROM Task AS t
+ INNER JOIN Sprint AS s ON t.sprintId = s.id
+ INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
+ WHERE s.projectId = $1
+ GROUP BY t.id
+) AS temp
+WHERE temp.hoursDeviation < 0
 $BODY$ LANGUAGE SQL;
+
+SELECT 
+"numOfTaskDoneWithDilation"
+FROM numOfTaskDoneWithDilationFunction(1);
 
 
 /* NUM OF SPRINTS DONE ON TIME */
@@ -729,10 +786,28 @@ FROM (
 ) AS temp
 WHERE temp.hoursDeviation >= 0
 /* numOfSprintDoneOnTimeFunction */
-CREATE OR REPLACE FUNCTION sprintSequenceEstimateFunction (projectId INT)
-RETURNS TABLE ("sprintId" INT, "dependencySprint" INT, "sprintStartTime" TIMESTAMP, "estimateDependencyFinishTime" TIMESTAMP) AS 
+CREATE OR REPLACE FUNCTION numOfSprintDoneOnTimeFunction (projectId INT)
+RETURNS TABLE ("numOfSprintsDoneOnTime" INT) AS 
 $BODY$
+SELECT 
+CAST(COUNT(*) AS INT) AS "numOfSprintsDoneOnTime"
+FROM (
+ SELECT
+ s.id,
+ FLOOR(EXTRACT(EPOCH FROM (
+  MAX(t.startTime + INTERVAL '1h' * t.hoursEstimate) - MAX(ta.finishTime) ) )  / 3600) AS hoursDeviation
+ FROM Task AS t
+ INNER JOIN Sprint AS s ON t.sprintId = s.id
+ INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
+ WHERE s.projectId = $1
+ GROUP BY s.id
+) AS temp
+WHERE temp.hoursDeviation >= 0
 $BODY$ LANGUAGE SQL;
+
+SELECT 
+"numOfSprintsDoneOnTime"
+FROM numOfSprintDoneOnTimeFunction(1);
 
 
 /* NUM OF SPRINTS DONE WITH DILATION */
@@ -751,11 +826,28 @@ FROM (
 ) AS temp
 WHERE temp.hoursDeviation < 0
 /* numOfSprintDoneWithDilationFunction */
-CREATE OR REPLACE FUNCTION sprintSequenceEstimateFunction (projectId INT)
-RETURNS TABLE ("sprintId" INT, "dependencySprint" INT, "sprintStartTime" TIMESTAMP, "estimateDependencyFinishTime" TIMESTAMP) AS 
+CREATE OR REPLACE FUNCTION numOfSprintDoneWithDilationFunction (projectId INT)
+RETURNS TABLE ("numOfSprintsDoneWithDilation" INT) AS 
 $BODY$
+SELECT 
+CAST(COUNT(*) AS INT) AS "numOfSprintsDoneWithDilation"
+FROM (
+ SELECT
+ s.id,
+ FLOOR(EXTRACT(EPOCH FROM (
+  MAX(t.startTime + INTERVAL '1h' * t.hoursEstimate) - MAX(ta.finishTime) ) )  / 3600) AS hoursDeviation
+ FROM Task AS t
+ INNER JOIN Sprint AS s ON t.sprintId = s.id
+ INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
+ WHERE s.projectId = $1
+ GROUP BY s.id
+) AS temp
+WHERE temp.hoursDeviation < 0
 $BODY$ LANGUAGE SQL;
 
+SELECT
+"numOfSprintsDoneWithDilation"
+FROM numOfSprintDoneWithDilationFunction(1);
 
 /* TASK ACTUAL DURATION */
  SELECT
@@ -769,10 +861,28 @@ $BODY$ LANGUAGE SQL;
  GROUP BY t.id
 ORDER BY t.id
 /* taskActualDurationFunction */
-CREATE OR REPLACE FUNCTION sprintSequenceEstimateFunction (projectId INT)
-RETURNS TABLE ("sprintId" INT, "dependencySprint" INT, "sprintStartTime" TIMESTAMP, "estimateDependencyFinishTime" TIMESTAMP) AS 
+DROP FUNCTION taskActualDurationFunction(INT);
+CREATE OR REPLACE FUNCTION taskActualDurationFunction (projectId INT)
+RETURNS TABLE ("taskId" INT, "taskHoursDuration" INT) AS 
 $BODY$
+ SELECT
+ t.id AS "taskId",
+ CAST( FLOOR(EXTRACT(EPOCH FROM (
+  MAX(ta.finishTime) - MIN(ta.acceptedTime) ) )  / 3600) AS INT) AS "taskHoursDuration"
+ FROM Task AS t
+ INNER JOIN Sprint AS s ON t.sprintId = s.id
+ INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
+ WHERE s.projectId = $1
+ GROUP BY t.id
+ORDER BY t.id
 $BODY$ LANGUAGE SQL;
+
+SELECT 
+"taskId",
+"taskHoursDuration"
+FROM taskActualDurationFunction(1);
+
+
 
 
 /* SPRINT ACTUAL DURATION */
@@ -785,11 +895,27 @@ $BODY$ LANGUAGE SQL;
  INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
  WHERE s.projectId = 1
  GROUP BY s.id
+ ORDER BY s.id
 /* sprintActualDurationFunction */
-CREATE OR REPLACE FUNCTION sprintSequenceEstimateFunction (projectId INT)
-RETURNS TABLE ("sprintId" INT, "dependencySprint" INT, "sprintStartTime" TIMESTAMP, "estimateDependencyFinishTime" TIMESTAMP) AS 
+CREATE OR REPLACE FUNCTION sprintActualDurationFunction (projectId INT)
+RETURNS TABLE ("sprintId" INT, "sprintHoursActualDuration" INT) AS 
 $BODY$
+ SELECT
+ s.id AS "sprintId",
+CAST( FLOOR(EXTRACT(EPOCH FROM (
+  MAX(ta.finishTime) - MIN(ta.acceptedTime) ) )  / 3600) AS INT) AS "sprintHoursActualDuration"
+ FROM Task AS t
+ INNER JOIN Sprint AS s ON t.sprintId = s.id
+ INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
+ WHERE s.projectId = $1
+ GROUP BY s.id
+ ORDER BY s.id
 $BODY$ LANGUAGE SQL;
+
+SELECT
+"sprintId",
+"sprintHoursActualDuration"
+FROM sprintActualDurationFunction(1);
 
 
 /* PROJECT ACTUAL DURATION */
@@ -803,10 +929,24 @@ SELECT
  WHERE s.projectId = 1
 GROUP BY s.projectId
 /* projectActualDurationFunction  */
-CREATE OR REPLACE FUNCTION sprintSequenceEstimateFunction (projectId INT)
-RETURNS TABLE ("sprintId" INT, "dependencySprint" INT, "sprintStartTime" TIMESTAMP, "estimateDependencyFinishTime" TIMESTAMP) AS 
+CREATE OR REPLACE FUNCTION projectActualDurationFunction (projectId INT)
+RETURNS TABLE ("projectId" INT, "projectHoursActualDuration" INT) AS 
 $BODY$
+SELECT
+ s.projectId AS "projectId",
+ CAST( FLOOR(EXTRACT(EPOCH FROM (
+  MAX(ta.finishTime) - MIN(ta.acceptedTime) ) )  / 3600) AS INT) AS "projectHoursActualDuration"
+ FROM Task AS t
+ INNER JOIN Sprint AS s ON t.sprintId = s.id
+ INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
+ WHERE s.projectId = $1
+GROUP BY s.projectId
 $BODY$ LANGUAGE SQL;
+
+SELECT
+"projectId",
+"projectHoursActualDuration"
+FROM projectActualDurationFunction(1);
 
 
 /* PROJECT HUMAN HOURS */
@@ -825,10 +965,29 @@ FROM (
 ) AS temp
 GROUP BY temp.projectId
 /* projectHumanHoursFunction */
-CREATE OR REPLACE FUNCTION sprintSequenceEstimateFunction (projectId INT)
-RETURNS TABLE ("sprintId" INT, "dependencySprint" INT, "sprintStartTime" TIMESTAMP, "estimateDependencyFinishTime" TIMESTAMP) AS 
+CREATE OR REPLACE FUNCTION projectHumanHoursFunction (projectId INT)
+RETURNS TABLE ("projectId" INT, "totalHumanHours" INT) AS 
 $BODY$
+SELECT 
+temp.projectId AS "projectId",
+CAST( SUM(temp.hoursactualtime) AS INT) AS "totalHumanHours"
+FROM (
+ SELECT 
+ ta.id,
+ s.projectId AS projectId,
+ FLOOR(EXTRACT(EPOCH FROM (ta.finishTime - ta.acceptedTime)) / 3600) AS hoursactualtime
+ FROM TaskAssignment AS ta
+ INNER JOIN Task AS t ON t.id = ta.taskId
+ INNER JOIN Sprint AS s ON s.id = t.sprintId
+ WHERE s.projectId = $1
+) AS temp
+GROUP BY temp.projectId
 $BODY$ LANGUAGE SQL;
+
+SELECT 
+"projectId",
+"totalHumanHours"
+FROM projectHumanHoursFunction(1);
 
 
 /* TASK ESTIMATE ACTUAL DEVIATION */
@@ -843,10 +1002,25 @@ $BODY$ LANGUAGE SQL;
  GROUP BY t.id
 ORDER BY t.id
 /* taskEstimateActualDeviationFunction */
-CREATE OR REPLACE FUNCTION sprintSequenceEstimateFunction (projectId INT)
-RETURNS TABLE ("sprintId" INT, "dependencySprint" INT, "sprintStartTime" TIMESTAMP, "estimateDependencyFinishTime" TIMESTAMP) AS 
+CREATE OR REPLACE FUNCTION taskEstimateActualDeviationFunction (projectId INT)
+RETURNS TABLE ("taskId" INT, "taskHoursDeviation" INT) AS 
 $BODY$
+SELECT
+ t.id AS "taskId",
+ CAST( FLOOR(EXTRACT(EPOCH FROM (
+  (t.startTime + INTERVAL '1h' * t.hoursEstimate) - MAX(ta.finishTime) ) )  / 3600) AS INT) AS "taskHoursDeviation"
+ FROM Task AS t
+ INNER JOIN Sprint AS s ON t.sprintId = s.id
+ INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
+ WHERE s.projectId = $1
+ GROUP BY t.id
+ORDER BY t.id
 $BODY$ LANGUAGE SQL;
+
+SELECT 
+"taskId",
+"taskHoursDeviation"
+FROM taskEstimateActualDeviationFunction(1);
 
 
 /* SPRINT ESTIMATE ACTUAL DEVIATION */
@@ -861,10 +1035,25 @@ WHERE s.projectId = 1
 GROUP BY s.id
 ORDER BY s.id
 /* sprintEstimateActualDeviationFunction */
-CREATE OR REPLACE FUNCTION sprintSequenceEstimateFunction (projectId INT)
-RETURNS TABLE ("sprintId" INT, "dependencySprint" INT, "sprintStartTime" TIMESTAMP, "estimateDependencyFinishTime" TIMESTAMP) AS 
+CREATE OR REPLACE FUNCTION sprintEstimateActualDeviationFunction (projectId INT)
+RETURNS TABLE ("sprintId" INT, "sprintHoursDeviation" INT) AS 
 $BODY$
+SELECT
+s.id AS "sprintId",
+CAST( FLOOR(EXTRACT(EPOCH FROM (
+ MAX(t.startTime + INTERVAL '1h' * t.hoursEstimate) - MAX(ta.finishTime) ) )  / 3600) AS INT) AS "sprintHoursDeviation"
+FROM Task AS t
+INNER JOIN Sprint AS s ON t.sprintId = s.id
+INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
+WHERE s.projectId = $1
+GROUP BY s.id
+ORDER BY s.id
 $BODY$ LANGUAGE SQL;
+
+SELECT
+"sprintId",
+"sprintHoursDeviation"
+FROM sprintEstimateActualDeviationFunction(1);
 
 
 /* EMPLOYEES ACTIVITY AT GIVEN TIME */
@@ -881,11 +1070,36 @@ INNER JOIN Sprint AS s ON s.projectId = p.id
 INNER JOIN Task AS t ON t.sprintId = s.id
 INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
 WHERE ( '2017-01-01 12:0:0' BETWEEN ta.acceptedTime AND ta.finishTime)
+ORDER BY "employeeId"
 /* employeesActivityAtGivenTimeFunction */
-CREATE OR REPLACE FUNCTION sprintSequenceEstimateFunction (projectId INT)
-RETURNS TABLE ("sprintId" INT, "dependencySprint" INT, "sprintStartTime" TIMESTAMP, "estimateDependencyFinishTime" TIMESTAMP) AS 
+CREATE OR REPLACE FUNCTION employeeActivityAtGivenTimeFunction ("datetime" TIMESTAMP)
+RETURNS TABLE ("employeeId" INT, "projectId" INT, "projectName" TEXT, "sprintId" INT, "sprintName" TEXT, "taskId" INT, "taskName" TEXT) AS 
 $BODY$
+SELECT 
+ta.employeeId AS "employeeId",
+p.id AS "projectId",
+p.name AS "projectName",
+s.id AS "sprintId",
+s.name AS "sprintName",
+t.id AS "taskId",
+t.name AS "taskName"
+FROM Project AS p
+INNER JOIN Sprint AS s ON s.projectId = p.id
+INNER JOIN Task AS t ON t.sprintId = s.id
+INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
+WHERE ( $1 BETWEEN ta.acceptedTime AND ta.finishTime)
+ORDER BY "employeeId"
 $BODY$ LANGUAGE SQL;
+
+SELECT 
+"employeeId",
+"projectId",
+"projectName",
+"sprintId",
+"sprintName",
+"taskId",
+"taskName"
+FROM employeeActivityAtGivenTimeFunction('2017-01-01 12:0:0');
 
 
 /* EMPLOYEE TASK DEVIATION */
@@ -900,7 +1114,23 @@ t.id AS "taskId",
  WHERE s.projectId = 1
 ORDER BY ta.employeeId, t.id
 /* employeeTaskDeviationFunction */
-CREATE OR REPLACE FUNCTION sprintSequenceEstimateFunction (projectId INT)
-RETURNS TABLE ("sprintId" INT, "dependencySprint" INT, "sprintStartTime" TIMESTAMP, "estimateDependencyFinishTime" TIMESTAMP) AS 
+CREATE OR REPLACE FUNCTION employeeTaskDeviationFunction (projectId INT)
+RETURNS TABLE ("employeeId" INT, "taskId" INT, "taskHoursDeviation" INT) AS 
 $BODY$
+ SELECT
+ ta.employeeId AS "employeeId",
+t.id AS "taskId",
+ CAST( FLOOR(EXTRACT(EPOCH FROM (
+  (t.startTime + INTERVAL '1h' * t.hoursEstimate) - ta.finishTime ) )  / 3600) AS INT) AS "taskHoursDeviation"
+ FROM Task AS t
+ INNER JOIN Sprint AS s ON t.sprintId = s.id
+ INNER JOIN TaskAssignment AS ta ON ta.taskId = t.id
+ WHERE s.projectId = $1
+ORDER BY ta.employeeId, t.id
 $BODY$ LANGUAGE SQL;
+
+SELECT 
+"employeeId",
+"taskId",
+"taskHoursDeviation"
+FROM employeeTaskDeviationFunction(1);
